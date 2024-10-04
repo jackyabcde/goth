@@ -29,9 +29,12 @@ const (
 )
 
 type Provider struct {
-	providerName         string
-	clientId             string
-	secret               string
+	providerName    string
+	clientId        string
+	pKCS8PrivateKey string
+	teamId          string
+	keyId           string
+
 	redirectURL          string
 	config               *oauth2.Config
 	httpClient           *http.Client
@@ -39,12 +42,14 @@ type Provider struct {
 	timeNowFn            func() time.Time
 }
 
-func New(clientId, secret, redirectURL string, httpClient *http.Client, scopes ...string) *Provider {
+func New(clientId string, pKCS8PrivateKey string, teamId string, keyId string, redirectURL string, httpClient *http.Client, scopes ...string) *Provider {
 	p := &Provider{
-		clientId:     clientId,
-		secret:       secret,
-		redirectURL:  redirectURL,
-		providerName: "apple",
+		clientId:        clientId,
+		pKCS8PrivateKey: pKCS8PrivateKey,
+		teamId:          teamId,
+		keyId:           keyId,
+		redirectURL:     redirectURL,
+		providerName:    "apple",
 	}
 	p.configure(scopes)
 	p.httpClient = httpClient
@@ -61,6 +66,31 @@ func (p *Provider) SetName(name string) {
 
 func (p Provider) ClientId() string {
 	return p.clientId
+}
+
+func (p Provider) Secret() string {
+	iat := time.Now().Unix()
+	//exp must < 6 months
+	exp := iat + 15552000
+
+	ss, err := MakeSecret(SecretParams{
+		PKCS8PrivateKey: pKCS8PrivateKey,
+
+		// 		`-----BEGIN PRIVATE KEY-----
+		// MIGHAgEAMBMGByqGSM49AgEGCCqGSM49AwEHBG0wawIBAQQgPALVklHT2n9FNxeP
+		// c1+TCP+Ep7YOU7T9KB5MTVpjL1ShRANCAATXAbDMQ/URATKRoSIFMkwetLH/M2S4
+		// nNFzkp23qt9IJDivieB/BBJct1UvhoICg5eZDhSR+x7UH3Uhog8qgoIC
+		// -----END PRIVATE KEY-----`, // example
+		TeamId:   teamId,
+		KeyId:    keyId,
+		ClientId: clientId,
+		Iat:      iat,
+		Exp:      exp,
+	})
+	if err != nil {
+		return nil
+	}
+	return *ss
 }
 
 type SecretParams struct {
@@ -96,7 +126,7 @@ func (p Provider) Secret() string {
 func (p Provider) RedirectURL() string {
 	return p.redirectURL
 }
-
+vvvv
 func (p Provider) BeginAuth(state string) (goth.Session, error) {
 	opts := make([]oauth2.AuthCodeOption, 0, 1)
 	if p.formPostResponseMode {
@@ -167,7 +197,7 @@ func (Provider) RefreshTokenAvailable() bool {
 func (p *Provider) configure(scopes []string) {
 	c := &oauth2.Config{
 		ClientID:     p.clientId,
-		ClientSecret: p.secret,
+		ClientSecret: p.Secret(),
 		RedirectURL:  p.redirectURL,
 		Endpoint: oauth2.Endpoint{
 			AuthURL:  authEndpoint,

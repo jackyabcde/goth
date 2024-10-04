@@ -126,7 +126,7 @@ func (p Provider) Secret() string {
 func (p Provider) RedirectURL() string {
 	return p.redirectURL
 }
-vvvv
+
 func (p Provider) BeginAuth(state string) (goth.Session, error) {
 	opts := make([]oauth2.AuthCodeOption, 0, 1)
 	if p.formPostResponseMode {

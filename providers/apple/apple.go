@@ -42,7 +42,7 @@ type Provider struct {
 	timeNowFn            func() time.Time
 }
 
-func New(clientId string, pKCS8PrivateKey string, teamId string, keyId string, redirectURL string, httpClient *http.Client, scopes ...string) *Provider {
+func New(clientId string, teamId string, keyId string, pKCS8PrivateKey string, redirectURL string, httpClient *http.Client, scopes ...string) *Provider {
 	p := &Provider{
 		clientId:        clientId,
 		pKCS8PrivateKey: pKCS8PrivateKey,
@@ -74,28 +74,28 @@ func (p Provider) Secret() string {
 	exp := iat + 15552000
 
 	ss, err := MakeSecret(SecretParams{
-		PKCS8PrivateKey: pKCS8PrivateKey,
+		PKCS8PrivateKey: p.pKCS8PrivateKey,
 
 		// 		`-----BEGIN PRIVATE KEY-----
 		// MIGHAgEAMBMGByqGSM49AgEGCCqGSM49AwEHBG0wawIBAQQgPALVklHT2n9FNxeP
 		// c1+TCP+Ep7YOU7T9KB5MTVpjL1ShRANCAATXAbDMQ/URATKRoSIFMkwetLH/M2S4
 		// nNFzkp23qt9IJDivieB/BBJct1UvhoICg5eZDhSR+x7UH3Uhog8qgoIC
 		// -----END PRIVATE KEY-----`, // example
-		TeamId:   teamId,
-		KeyId:    keyId,
-		ClientId: clientId,
+		TeamId:   p.teamId,
+		KeyId:    p.keyId,
+		ClientId: p.clientId,
 		Iat:      iat,
 		Exp:      exp,
 	})
 	if err != nil {
-		return nil
+		return ""
 	}
 	return *ss
 }
 
 type SecretParams struct {
 	PKCS8PrivateKey, TeamId, KeyId, ClientId string
-	Iat, Exp                                 int
+	Iat, Exp                                 int64
 }
 
 func MakeSecret(sp SecretParams) (*string, error) {
@@ -119,9 +119,9 @@ func MakeSecret(sp SecretParams) (*string, error) {
 	return &ss, err
 }
 
-func (p Provider) Secret() string {
-	return p.secret
-}
+// func (p Provider) Secret() string {
+// 	return p.secret
+// }
 
 func (p Provider) RedirectURL() string {
 	return p.redirectURL

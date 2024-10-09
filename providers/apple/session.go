@@ -61,7 +61,7 @@ func (s *Session) Authorize(provider goth.Provider, params goth.Params) (string,
 	opts := []oauth2.AuthCodeOption{
 		// Apple requires client id & secret as headers
 		oauth2.SetAuthURLParam("client_id", p.clientId),
-		oauth2.SetAuthURLParam("client_secret", p.secret),
+		oauth2.SetAuthURLParam("client_secret", p.Secret()),
 	}
 	token, err := p.config.Exchange(context.Background(), params.Get("code"), opts...)
 	if err != nil {
